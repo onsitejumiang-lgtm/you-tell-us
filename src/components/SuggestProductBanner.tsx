@@ -8,14 +8,14 @@ const SuggestProductBanner = ({ onClick }: SuggestProductBannerProps) => {
   return (
     <button
       onClick={onClick}
-      className="w-full bg-banner text-banner-foreground py-3 px-4 flex items-center justify-center gap-3 cursor-pointer transition-all hover:brightness-110 group"
+      className="w-full bg-foreground py-2 px-4 flex items-center justify-center gap-2 cursor-pointer hover:opacity-90 transition-opacity"
     >
-      <Lightbulb className="w-5 h-5 animate-pulse" />
-      <span className="text-sm font-semibold tracking-wide uppercase">
-        Can't find what you need? Suggest a product!
+      <Lightbulb className="w-4 h-4 text-primary" />
+      <span className="text-xs font-medium text-primary-foreground tracking-wide">
+        Can't find what you're looking for?
       </span>
-      <span className="text-xs font-medium opacity-80 hidden sm:inline border border-banner-foreground/30 rounded-full px-3 py-0.5 group-hover:opacity-100 transition-opacity">
-        Tell us →
+      <span className="text-xs font-bold text-primary underline underline-offset-2">
+        Suggest a Product
       </span>
     </button>
   );

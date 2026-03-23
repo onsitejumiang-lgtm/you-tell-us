@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, CheckCircle, Lightbulb } from "lucide-react";
+import { Upload, CheckCircle, Package } from "lucide-react";
 import { toast } from "sonner";
 
 interface SuggestProductFormProps {
@@ -33,7 +33,6 @@ const SuggestProductForm = ({ open, onOpenChange }: SuggestProductFormProps) => 
       return;
     }
 
-    // In a real app, this would send to an API
     console.log("Product suggestion:", {
       productName: formData.get("productName"),
       productUse: formData.get("productUse"),
@@ -57,89 +56,93 @@ const SuggestProductForm = ({ open, onOpenChange }: SuggestProductFormProps) => 
 
   return (
     <Dialog open={open} onOpenChange={(val) => { onOpenChange(val); if (!val) { setSubmitted(false); setFileName(null); } }}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md rounded-sm p-0 overflow-hidden gap-0">
         {submitted ? (
-          <div className="flex flex-col items-center justify-center py-10 gap-4">
-            <div className="w-16 h-16 rounded-full bg-success/10 flex items-center justify-center">
-              <CheckCircle className="w-8 h-8 text-success" />
+          <div className="flex flex-col items-center justify-center py-12 gap-3 px-6">
+            <div className="w-14 h-14 rounded-full bg-success/10 flex items-center justify-center">
+              <CheckCircle className="w-7 h-7 text-success" />
             </div>
-            <h3 className="text-xl font-bold text-foreground">Thank you!</h3>
+            <h3 className="text-lg font-bold text-foreground">Thank you!</h3>
             <p className="text-muted-foreground text-center text-sm">
-              We've added your suggestion to our hunting list. We'll do our best to source it!
+              Your suggestion has been added to our sourcing list. We'll do our best to make it available!
             </p>
           </div>
         ) : (
           <>
-            <DialogHeader>
-              <div className="flex items-center gap-2">
-                <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Lightbulb className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <DialogTitle className="text-lg">Suggest a Product</DialogTitle>
-                  <DialogDescription className="text-xs">
-                    Help us stock what you need
+            {/* Orange header bar */}
+            <div className="bg-primary px-5 py-4 flex items-center gap-3">
+              <Package className="w-5 h-5 text-primary-foreground" />
+              <div>
+                <DialogHeader className="p-0 space-y-0">
+                  <DialogTitle className="text-base font-bold text-primary-foreground">
+                    Suggest a Product
+                  </DialogTitle>
+                  <DialogDescription className="text-xs text-primary-foreground/80">
+                    Tell us what to source for you
                   </DialogDescription>
-                </div>
+                </DialogHeader>
               </div>
-            </DialogHeader>
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 mt-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="productName" className="text-sm font-medium">
+            <form onSubmit={handleSubmit} className="p-5 space-y-4">
+              <div className="space-y-1">
+                <Label htmlFor="productName" className="text-xs font-semibold text-foreground uppercase tracking-wide">
                   Product Name <span className="text-destructive">*</span>
                 </Label>
                 <Input
                   id="productName"
                   name="productName"
-                  placeholder="e.g. Dyson Airwrap Styler"
+                  placeholder="e.g. Samsung Galaxy S24 Ultra"
                   required
                   maxLength={200}
+                  className="rounded-sm h-10 text-sm"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="productUse" className="text-sm font-medium">
-                  What would you use it for? <span className="text-destructive">*</span>
+              <div className="space-y-1">
+                <Label htmlFor="productUse" className="text-xs font-semibold text-foreground uppercase tracking-wide">
+                  What will you use it for? <span className="text-destructive">*</span>
                 </Label>
                 <Textarea
                   id="productUse"
                   name="productUse"
-                  placeholder="e.g. Hair styling for everyday use"
+                  placeholder="e.g. Personal phone for everyday use"
                   required
                   maxLength={500}
-                  className="resize-none h-20"
+                  className="resize-none h-16 rounded-sm text-sm"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label htmlFor="brand" className="text-sm font-medium">
-                    Brand <span className="text-muted-foreground text-xs">(optional)</span>
+                <div className="space-y-1">
+                  <Label htmlFor="brand" className="text-xs font-semibold text-foreground uppercase tracking-wide">
+                    Brand <span className="text-muted-foreground font-normal normal-case">(optional)</span>
                   </Label>
                   <Input
                     id="brand"
                     name="brand"
-                    placeholder="e.g. Dyson"
+                    placeholder="e.g. Samsung"
                     maxLength={100}
+                    className="rounded-sm h-10 text-sm"
                   />
                 </div>
-                <div className="space-y-1.5">
-                  <Label htmlFor="price" className="text-sm font-medium">
-                    Expected Price <span className="text-muted-foreground text-xs">(optional)</span>
+                <div className="space-y-1">
+                  <Label htmlFor="price" className="text-xs font-semibold text-foreground uppercase tracking-wide">
+                    Price <span className="text-muted-foreground font-normal normal-case">(optional)</span>
                   </Label>
                   <Input
                     id="price"
                     name="price"
-                    placeholder="e.g. $150"
+                    placeholder="e.g. ₦150,000"
                     maxLength={50}
+                    className="rounded-sm h-10 text-sm"
                   />
                 </div>
               </div>
 
-              <div className="space-y-1.5">
-                <Label className="text-sm font-medium">
-                  Image / Video <span className="text-muted-foreground text-xs">(optional)</span>
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-foreground uppercase tracking-wide">
+                  Image / Video <span className="text-muted-foreground font-normal normal-case">(optional)</span>
                 </Label>
                 <input
                   ref={fileInputRef}
@@ -152,16 +155,16 @@ const SuggestProductForm = ({ open, onOpenChange }: SuggestProductFormProps) => 
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="w-full border-2 border-dashed border-border rounded-lg py-4 flex flex-col items-center gap-1.5 text-muted-foreground hover:border-primary/50 hover:text-primary transition-colors cursor-pointer"
+                  className="w-full border border-dashed border-border rounded-sm py-3 flex flex-col items-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer"
                 >
-                  <Upload className="w-5 h-5" />
-                  <span className="text-xs font-medium">
-                    {fileName || "Click to upload a reference image or video"}
+                  <Upload className="w-4 h-4" />
+                  <span className="text-xs">
+                    {fileName || "Upload a reference image or video"}
                   </span>
                 </button>
               </div>
 
-              <Button type="submit" className="w-full" size="lg">
+              <Button type="submit" className="w-full rounded-sm font-bold uppercase tracking-wide text-sm" size="lg">
                 Submit Suggestion
               </Button>
             </form>
