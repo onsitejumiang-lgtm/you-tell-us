@@ -69,9 +69,11 @@ const SuggestProductForm = () => {
     const fd = new FormData(e.currentTarget);
     const parsed = schema.safeParse({
       product_name: fd.get("product_name"),
+      category,
       intended_use: fd.get("intended_use"),
       preferred_brand: fd.get("preferred_brand") ?? "",
       expected_price: fd.get("expected_price") ?? "",
+      product_link: fd.get("product_link") ?? "",
     });
 
     if (!parsed.success) {
@@ -84,10 +86,12 @@ const SuggestProductForm = () => {
       await addDoc(collection(db, "product_suggestions"), {
         user_id: auth.currentUser?.uid ?? null,
         product_name: parsed.data.product_name,
+        category: parsed.data.category,
         intended_use: parsed.data.intended_use,
         preferred_brand: parsed.data.preferred_brand?.trim() || null,
         expected_price: parsed.data.expected_price ? Number(parsed.data.expected_price) : null,
         currency: "NGN",
+        product_link: parsed.data.product_link?.trim() || null,
         status: "new",
         created_at: serverTimestamp(),
       });
