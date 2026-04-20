@@ -276,17 +276,18 @@ const Admin = () => {
               <TableRow>
                 <TableHead>Submitted</TableHead>
                 <TableHead>Product</TableHead>
+                <TableHead>Category</TableHead>
                 <TableHead>Brand</TableHead>
                 <TableHead>Price</TableHead>
                 <TableHead>Use</TableHead>
-                <TableHead>Media</TableHead>
+                <TableHead>Link</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                     No suggestions match your filters yet.
                   </TableCell>
                 </TableRow>
@@ -297,15 +298,16 @@ const Admin = () => {
                       {s.created_at ? s.created_at.toDate().toLocaleDateString() : "—"}
                     </TableCell>
                     <TableCell className="font-medium">{s.product_name}</TableCell>
+                    <TableCell className="text-xs">{s.category ?? "—"}</TableCell>
                     <TableCell className="text-sm">{s.preferred_brand ?? "—"}</TableCell>
                     <TableCell className="text-sm whitespace-nowrap">
                       {s.expected_price != null ? `${s.currency} ${s.expected_price.toLocaleString()}` : "—"}
                     </TableCell>
                     <TableCell className="text-xs max-w-xs truncate" title={s.intended_use}>{s.intended_use}</TableCell>
                     <TableCell>
-                      {s.media_url ? (
-                        <a href={s.media_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary text-xs">
-                          {s.media_type ?? "file"} <ExternalLink className="w-3 h-3" />
+                      {s.product_link ? (
+                        <a href={s.product_link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary text-xs">
+                          Open <ExternalLink className="w-3 h-3" />
                         </a>
                       ) : (
                         <span className="text-muted-foreground text-xs">—</span>
