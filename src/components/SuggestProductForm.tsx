@@ -219,6 +219,21 @@ const SuggestProductForm = () => {
           </div>
         </div>
 
+        <div className="space-y-1">
+          <Label htmlFor="product_link" className="text-xs font-semibold uppercase tracking-wide">
+            Product Link <span className="text-muted-foreground font-normal normal-case">(optional)</span>
+          </Label>
+          <Input
+            id="product_link"
+            name="product_link"
+            type="url"
+            inputMode="url"
+            placeholder="https://example.com/product"
+            maxLength={500}
+            disabled={submitting}
+            className="rounded-sm h-10 text-sm"
+          />
+        </div>
 
         <Button
           type="submit"
