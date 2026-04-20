@@ -63,7 +63,7 @@ const Admin = () => {
 
   useEffect(() => {
     let unsubSnap: (() => void) | undefined;
-    const unsubAuth = onAuthStateChanged(auth, async (user) => {
+      const ADMIN_UIDS = ["JiJIMXx4CEU2ddF8zku6iXQz0O22"];
       setAuthed(!!user);
       if (!user) {
         setIsAdmin(false);
@@ -71,30 +71,26 @@ const Admin = () => {
         setLoading(false);
         return;
       }
-      try {
-        const adminDoc = await getDoc(doc(db, "admins", user.uid));
-        const admin = adminDoc.exists();
-        setIsAdmin(admin);
-        if (admin) {
-          const q = query(collection(db, "product_suggestions"), orderBy("created_at", "desc"));
-          unsubSnap = onSnapshot(
-            q,
-            (snap) => {
-              const rows: Suggestion[] = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
-              setItems(rows);
-              setLoading(false);
-            },
-            (err) => {
-              console.error(err);
-              toast.error("Failed to load suggestions");
-              setLoading(false);
-            }
-          );
-        } else {
-          setLoading(false);
-        }
-      } catch (e) {
-        console.error(e);
+      
+      const admin = ADMIN_UIDS.includes(user.uid);
+      setIsAdmin(admin);
+      
+      if (admin) {
+        const q = query(collection(db, "product_suggestions"), orderBy("created_at", "desc"));
+        unsubSnap = onSnapshot(
+          q,
+          (snap) => {
+            const rows: Suggestion[] = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+            setItems(rows);
+            setLoading(false);
+          },
+          (err) => {
+            console.error(err);
+            toast.error("Failed to load suggestions");
+            setLoading(false);
+          }
+        );
+      } else {
         setLoading(false);
       }
     });
