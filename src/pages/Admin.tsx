@@ -63,7 +63,10 @@ const Admin = () => {
 
   useEffect(() => {
     let unsubSnap: (() => void) | undefined;
-      const ADMIN_UIDS = ["JiJIMXx4CEU2ddF8zku6iXQz0O22"];
+      const ADMIN_UIDS = [
+        "JiJIMXx4CEU2ddF8zku6iXQz0O22",
+        "JlJIMXx4CEU2ddF8zku6iXQzhp02"
+      ];
       setAuthed(!!user);
       if (!user) {
         setIsAdmin(false);
