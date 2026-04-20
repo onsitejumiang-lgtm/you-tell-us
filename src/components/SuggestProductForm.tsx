@@ -52,11 +52,13 @@ const schema = z.object({
 const SuggestProductForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [category, setCategory] = useState<string>("");
   const formRef = useRef<HTMLFormElement>(null);
 
   const resetAll = () => {
     setSubmitted(false);
     setSubmitting(false);
+    setCategory("");
     formRef.current?.reset();
   };
 
