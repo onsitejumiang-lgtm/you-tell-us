@@ -157,6 +157,22 @@ const SuggestProductForm = () => {
         </div>
 
         <div className="space-y-1">
+          <Label htmlFor="category" className="text-xs font-semibold uppercase tracking-wide">
+            Category <span className="text-destructive">*</span>
+          </Label>
+          <Select value={category} onValueChange={setCategory} disabled={submitting}>
+            <SelectTrigger id="category" className="rounded-sm h-10 text-sm">
+              <SelectValue placeholder="Select a category" />
+            </SelectTrigger>
+            <SelectContent>
+              {CATEGORIES.map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
           <Label htmlFor="intended_use" className="text-xs font-semibold uppercase tracking-wide">
             Intended Use <span className="text-destructive">*</span>
           </Label>
