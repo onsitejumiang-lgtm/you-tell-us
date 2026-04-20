@@ -50,30 +50,6 @@ const SuggestProductForm = () => {
 
     setSubmitting(true);
     try {
-      let media_url: string | null = null;
-      let media_type: "image" | "video" | null = null;
-
-      if (file) {
-        if (file.size > MAX_FILE_BYTES) {
-          toast.error("File must be 10 MB or smaller");
-          setSubmitting(false);
-          return;
-        }
-        const isImage = file.type.startsWith("image/");
-        const isVideo = file.type.startsWith("video/");
-        if (!isImage && !isVideo) {
-          toast.error("Only image or video files are allowed");
-          setSubmitting(false);
-          return;
-        }
-        media_type = isImage ? "image" : "video";
-        const ext = file.name.split(".").pop() ?? "bin";
-        const path = `suggestion-media/${crypto.randomUUID()}.${ext}`;
-        const fileRef = storageRef(storage, path);
-        await uploadBytes(fileRef, file, { contentType: file.type });
-        media_url = await getDownloadURL(fileRef);
-      }
-
       await addDoc(collection(db, "product_suggestions"), {
         user_id: auth.currentUser?.uid ?? null,
         product_name: parsed.data.product_name,
@@ -81,8 +57,6 @@ const SuggestProductForm = () => {
         preferred_brand: parsed.data.preferred_brand?.trim() || null,
         expected_price: parsed.data.expected_price ? Number(parsed.data.expected_price) : null,
         currency: "NGN",
-        media_url,
-        media_type,
         status: "new",
         created_at: serverTimestamp(),
       });
