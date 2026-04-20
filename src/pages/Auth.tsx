@@ -1,6 +1,11 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+} from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,13 +20,10 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate("/admin");
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user) navigate("/admin");
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session) navigate("/admin");
-    });
-    return () => sub.subscription.unsubscribe();
+    return unsub;
   }, [navigate]);
 
   const handle = async (e: React.FormEvent) => {
@@ -29,16 +31,10 @@ const Auth = () => {
     setLoading(true);
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: { emailRedirectTo: `${window.location.origin}/admin` },
-        });
-        if (error) throw error;
-        toast.success("Account created. You may need to confirm your email.");
+        await createUserWithEmailAndPassword(auth, email, password);
+        toast.success("Account created.");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
+        await signInWithEmailAndPassword(auth, email, password);
       }
     } catch (err: any) {
       toast.error(err?.message ?? "Authentication failed");
@@ -59,26 +55,11 @@ const Auth = () => {
         <form onSubmit={handle} className="space-y-3 border rounded-sm p-5 bg-card">
           <div className="space-y-1">
             <Label htmlFor="email" className="text-xs uppercase font-semibold">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="rounded-sm"
-            />
+            <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} className="rounded-sm" />
           </div>
           <div className="space-y-1">
             <Label htmlFor="password" className="text-xs uppercase font-semibold">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="rounded-sm"
-            />
+            <Input id="password" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} className="rounded-sm" />
           </div>
           <Button type="submit" disabled={loading} className="w-full rounded-sm uppercase font-bold text-sm">
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : mode === "signin" ? "Sign In" : "Sign Up"}
@@ -92,7 +73,7 @@ const Auth = () => {
           </button>
         </form>
         <p className="text-xs text-center text-muted-foreground">
-          After signing up, ask a project owner to add your user to the <code>user_roles</code> table with role <code>admin</code>.
+          After signing up, ask a project owner to create a Firestore document at <code>admins/&#123;your-uid&#125;</code> to grant admin access.
         </p>
       </div>
     </div>

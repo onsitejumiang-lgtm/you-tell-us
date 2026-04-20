@@ -1,6 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { onAuthStateChanged, signOut as fbSignOut } from "firebase/auth";
+import {
+  collection,
+  doc,
+  getDoc,
+  onSnapshot,
+  orderBy,
+  query,
+  updateDoc,
+  Timestamp,
+} from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Download, ExternalLink, Loader2, ShieldAlert, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
+type Status = "new" | "sourcing" | "sourced" | "rejected";
 type Suggestion = {
   id: string;
   product_name: string;
@@ -31,9 +43,9 @@ type Suggestion = {
   currency: string;
   media_url: string | null;
   media_type: string | null;
-  status: "new" | "sourcing" | "sourced" | "rejected";
+  status: Status;
   user_id: string | null;
-  created_at: string;
+  created_at: Timestamp | null;
 };
 
 const Admin = () => {
@@ -48,50 +60,47 @@ const Admin = () => {
   const [maxPrice, setMaxPrice] = useState("");
 
   useEffect(() => {
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setAuthed(!!session);
-      if (session) checkRoleAndFetch(session.user.id);
-      else {
+    let unsubSnap: (() => void) | undefined;
+    const unsubAuth = onAuthStateChanged(auth, async (user) => {
+      setAuthed(!!user);
+      if (!user) {
         setIsAdmin(false);
         setItems([]);
         setLoading(false);
+        return;
+      }
+      try {
+        const adminDoc = await getDoc(doc(db, "admins", user.uid));
+        const admin = adminDoc.exists();
+        setIsAdmin(admin);
+        if (admin) {
+          const q = query(collection(db, "product_suggestions"), orderBy("created_at", "desc"));
+          unsubSnap = onSnapshot(
+            q,
+            (snap) => {
+              const rows: Suggestion[] = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+              setItems(rows);
+              setLoading(false);
+            },
+            (err) => {
+              console.error(err);
+              toast.error("Failed to load suggestions");
+              setLoading(false);
+            }
+          );
+        } else {
+          setLoading(false);
+        }
+      } catch (e) {
+        console.error(e);
+        setLoading(false);
       }
     });
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setAuthed(!!session);
-      if (session) checkRoleAndFetch(session.user.id);
-      else setLoading(false);
-    });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      unsubAuth();
+      unsubSnap?.();
+    };
   }, []);
-
-  const checkRoleAndFetch = async (uid: string) => {
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", uid)
-      .eq("role", "admin")
-      .maybeSingle();
-    if (error) console.error(error);
-    const admin = !!data;
-    setIsAdmin(admin);
-    if (admin) await fetchSuggestions();
-    setLoading(false);
-  };
-
-  const fetchSuggestions = async () => {
-    const { data, error } = await supabase
-      .from("product_suggestions")
-      .select("*")
-      .order("created_at", { ascending: false });
-    if (error) {
-      toast.error("Failed to load suggestions");
-      console.error(error);
-      return;
-    }
-    setItems((data ?? []) as Suggestion[]);
-  };
 
   const filtered = useMemo(() => {
     return items.filter((s) => {
@@ -99,9 +108,9 @@ const Admin = () => {
       if (search) {
         const q = search.toLowerCase();
         if (
-          !s.product_name.toLowerCase().includes(q) &&
+          !s.product_name?.toLowerCase().includes(q) &&
           !(s.preferred_brand?.toLowerCase().includes(q) ?? false) &&
-          !s.intended_use.toLowerCase().includes(q)
+          !s.intended_use?.toLowerCase().includes(q)
         )
           return false;
       }
@@ -111,14 +120,13 @@ const Admin = () => {
     });
   }, [items, statusFilter, search, minPrice, maxPrice]);
 
-  const updateStatus = async (id: string, status: Suggestion["status"]) => {
-    const { error } = await supabase
-      .from("product_suggestions")
-      .update({ status })
-      .eq("id", id);
-    if (error) return toast.error("Update failed");
-    setItems((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
-    toast.success("Status updated");
+  const updateStatus = async (id: string, status: Status) => {
+    try {
+      await updateDoc(doc(db, "product_suggestions", id), { status });
+      toast.success("Status updated");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Update failed");
+    }
   };
 
   const exportCsv = () => {
@@ -141,7 +149,17 @@ const Admin = () => {
     };
     const csv = [
       headers.join(","),
-      ...filtered.map((r) => headers.map((h) => escape((r as any)[h])).join(",")),
+      ...filtered.map((r) =>
+        headers
+          .map((h) => {
+            if (h === "created_at") {
+              const ts = r.created_at;
+              return escape(ts ? ts.toDate().toISOString() : "");
+            }
+            return escape((r as any)[h]);
+          })
+          .join(",")
+      ),
     ].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
@@ -152,8 +170,8 @@ const Admin = () => {
     URL.revokeObjectURL(url);
   };
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
+  const handleSignOut = async () => {
+    await fbSignOut(auth);
     navigate("/auth");
   };
 
@@ -174,9 +192,7 @@ const Admin = () => {
           <p className="text-sm text-muted-foreground">
             Please log in to access the suggestions dashboard.
           </p>
-          <Button onClick={() => navigate("/auth")} className="rounded-sm">
-            Go to Sign In
-          </Button>
+          <Button onClick={() => navigate("/auth")} className="rounded-sm">Go to Sign In</Button>
         </div>
       </div>
     );
@@ -189,11 +205,12 @@ const Admin = () => {
           <ShieldAlert className="w-10 h-10 mx-auto text-destructive" />
           <h1 className="text-xl font-bold">Admin access required</h1>
           <p className="text-sm text-muted-foreground">
-            Your account doesn't have admin privileges. Ask a project owner to grant you the
-            <code className="mx-1 px-1 rounded bg-muted">admin</code> role in the
-            <code className="mx-1 px-1 rounded bg-muted">user_roles</code> table.
+            Your account isn't an admin. Create a Firestore document at
+            <code className="mx-1 px-1 rounded bg-muted">admins/&#123;your-uid&#125;</code>
+            in the Firebase console to grant access.
           </p>
-          <Button variant="outline" onClick={signOut} className="rounded-sm">
+          <p className="text-xs text-muted-foreground">Your UID: <code>{auth.currentUser?.uid}</code></p>
+          <Button variant="outline" onClick={handleSignOut} className="rounded-sm">
             <LogOut className="w-4 h-4" /> Sign out
           </Button>
         </div>
@@ -201,7 +218,7 @@ const Admin = () => {
     );
   }
 
-  const statusColors: Record<Suggestion["status"], string> = {
+  const statusColors: Record<Status, string> = {
     new: "bg-primary/10 text-primary",
     sourcing: "bg-amber-500/10 text-amber-700 dark:text-amber-400",
     sourced: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
@@ -225,7 +242,7 @@ const Admin = () => {
             <Link to="/">
               <Button variant="ghost" size="sm" className="rounded-sm">Back to site</Button>
             </Link>
-            <Button variant="ghost" size="sm" onClick={signOut} className="rounded-sm">
+            <Button variant="ghost" size="sm" onClick={handleSignOut} className="rounded-sm">
               <LogOut className="w-4 h-4" />
             </Button>
           </div>
@@ -234,16 +251,9 @@ const Admin = () => {
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
-          <Input
-            placeholder="Search name, brand, use…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="rounded-sm"
-          />
+          <Input placeholder="Search name, brand, use…" value={search} onChange={(e) => setSearch(e.target.value)} className="rounded-sm" />
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="rounded-sm">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
+            <SelectTrigger className="rounded-sm"><SelectValue placeholder="Status" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All statuses</SelectItem>
               <SelectItem value="new">New</SelectItem>
@@ -252,20 +262,8 @@ const Admin = () => {
               <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
-          <Input
-            type="number"
-            placeholder="Min price"
-            value={minPrice}
-            onChange={(e) => setMinPrice(e.target.value)}
-            className="rounded-sm"
-          />
-          <Input
-            type="number"
-            placeholder="Max price"
-            value={maxPrice}
-            onChange={(e) => setMaxPrice(e.target.value)}
-            className="rounded-sm"
-          />
+          <Input type="number" placeholder="Min price" value={minPrice} onChange={(e) => setMinPrice(e.target.value)} className="rounded-sm" />
+          <Input type="number" placeholder="Max price" value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} className="rounded-sm" />
         </div>
 
         <div className="border rounded-sm bg-card overflow-x-auto">
@@ -292,26 +290,17 @@ const Admin = () => {
                 filtered.map((s) => (
                   <TableRow key={s.id}>
                     <TableCell className="text-xs whitespace-nowrap">
-                      {new Date(s.created_at).toLocaleDateString()}
+                      {s.created_at ? s.created_at.toDate().toLocaleDateString() : "—"}
                     </TableCell>
                     <TableCell className="font-medium">{s.product_name}</TableCell>
                     <TableCell className="text-sm">{s.preferred_brand ?? "—"}</TableCell>
                     <TableCell className="text-sm whitespace-nowrap">
-                      {s.expected_price != null
-                        ? `${s.currency} ${s.expected_price.toLocaleString()}`
-                        : "—"}
+                      {s.expected_price != null ? `${s.currency} ${s.expected_price.toLocaleString()}` : "—"}
                     </TableCell>
-                    <TableCell className="text-xs max-w-xs truncate" title={s.intended_use}>
-                      {s.intended_use}
-                    </TableCell>
+                    <TableCell className="text-xs max-w-xs truncate" title={s.intended_use}>{s.intended_use}</TableCell>
                     <TableCell>
                       {s.media_url ? (
-                        <a
-                          href={s.media_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-primary text-xs"
-                        >
+                        <a href={s.media_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-primary text-xs">
                           {s.media_type ?? "file"} <ExternalLink className="w-3 h-3" />
                         </a>
                       ) : (
@@ -319,14 +308,9 @@ const Admin = () => {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Select
-                        value={s.status}
-                        onValueChange={(v) => updateStatus(s.id, v as Suggestion["status"])}
-                      >
+                      <Select value={s.status} onValueChange={(v) => updateStatus(s.id, v as Status)}>
                         <SelectTrigger className="h-8 rounded-sm w-[120px]">
-                          <Badge className={`${statusColors[s.status]} border-0 font-medium`}>
-                            {s.status}
-                          </Badge>
+                          <Badge className={`${statusColors[s.status]} border-0 font-medium`}>{s.status}</Badge>
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="new">New</SelectItem>
