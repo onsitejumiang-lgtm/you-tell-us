@@ -6,7 +6,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Upload, CheckCircle, Package, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
-import { supabase } from "@/integrations/supabase/client";
+import { addDoc, collection, serverTimestamp } from "firebase/firestore";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db, storage, auth } from "@/lib/firebase";
 
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 
@@ -73,19 +75,14 @@ const SuggestProductForm = () => {
         }
         media_type = isImage ? "image" : "video";
         const ext = file.name.split(".").pop() ?? "bin";
-        const path = `${crypto.randomUUID()}.${ext}`;
-        const { error: upErr } = await supabase.storage
-          .from("suggestion-media")
-          .upload(path, file, { contentType: file.type, upsert: false });
-        if (upErr) throw upErr;
-        const { data } = supabase.storage.from("suggestion-media").getPublicUrl(path);
-        media_url = data.publicUrl;
+        const path = `suggestion-media/${crypto.randomUUID()}.${ext}`;
+        const fileRef = storageRef(storage, path);
+        await uploadBytes(fileRef, file, { contentType: file.type });
+        media_url = await getDownloadURL(fileRef);
       }
 
-      const { data: { user } } = await supabase.auth.getUser();
-
-      const { error } = await supabase.from("product_suggestions").insert({
-        user_id: user?.id ?? null,
+      await addDoc(collection(db, "product_suggestions"), {
+        user_id: auth.currentUser?.uid ?? null,
         product_name: parsed.data.product_name,
         intended_use: parsed.data.intended_use,
         preferred_brand: parsed.data.preferred_brand?.trim() || null,
@@ -93,9 +90,10 @@ const SuggestProductForm = () => {
         currency: "NGN",
         media_url,
         media_type,
+        status: "new",
+        created_at: serverTimestamp(),
       });
 
-      if (error) throw error;
       setSubmitted(true);
     } catch (err: any) {
       console.error("Suggestion submission failed:", err);
