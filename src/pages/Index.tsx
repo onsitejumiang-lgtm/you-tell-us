@@ -10,12 +10,6 @@ const Index = () => {
       {/* Suggest Product Banner - drop this into any page/layout */}
       <SuggestProductBanner onClick={() => setFormOpen(true)} />
 
-      {/* Page content placeholder */}
-      <div className="flex items-center justify-center min-h-[80vh]">
-        <p className="text-muted-foreground text-sm">
-          Your store content goes here. The banner above appears on every page.
-        </p>
-      </div>
 
       {/* Form Modal */}
       <SuggestProductForm open={formOpen} onOpenChange={setFormOpen} />
