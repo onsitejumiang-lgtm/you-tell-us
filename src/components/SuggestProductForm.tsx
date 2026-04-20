@@ -3,14 +3,38 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CheckCircle, Package, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 
+const CATEGORIES = [
+  "Phones & Tablets",
+  "Electronics",
+  "Computing",
+  "Home & Office",
+  "Appliances",
+  "Health & Beauty",
+  "Fashion",
+  "Supermarket",
+  "Baby Products",
+  "Gaming",
+  "Sporting Goods",
+  "Automobile",
+  "Other",
+] as const;
+
 const schema = z.object({
   product_name: z.string().trim().min(1, "Product name is required").max(200),
+  category: z.enum(CATEGORIES, { errorMap: () => ({ message: "Please pick a category" }) }),
   intended_use: z.string().trim().min(1, "Please tell us what you'll use it for").max(1000),
   preferred_brand: z.string().trim().max(100).optional().or(z.literal("")),
   expected_price: z
@@ -18,16 +42,23 @@ const schema = z.object({
     .trim()
     .optional()
     .refine((v) => !v || /^\d+(\.\d{1,2})?$/.test(v), "Enter a valid amount"),
+  product_link: z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || /^https?:\/\/.+/i.test(v), "Enter a valid URL (http/https)"),
 });
 
 const SuggestProductForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [category, setCategory] = useState<string>("");
   const formRef = useRef<HTMLFormElement>(null);
 
   const resetAll = () => {
     setSubmitted(false);
     setSubmitting(false);
+    setCategory("");
     formRef.current?.reset();
   };
 
@@ -38,9 +69,11 @@ const SuggestProductForm = () => {
     const fd = new FormData(e.currentTarget);
     const parsed = schema.safeParse({
       product_name: fd.get("product_name"),
+      category,
       intended_use: fd.get("intended_use"),
       preferred_brand: fd.get("preferred_brand") ?? "",
       expected_price: fd.get("expected_price") ?? "",
+      product_link: fd.get("product_link") ?? "",
     });
 
     if (!parsed.success) {
@@ -53,10 +86,12 @@ const SuggestProductForm = () => {
       await addDoc(collection(db, "product_suggestions"), {
         user_id: auth.currentUser?.uid ?? null,
         product_name: parsed.data.product_name,
+        category: parsed.data.category,
         intended_use: parsed.data.intended_use,
         preferred_brand: parsed.data.preferred_brand?.trim() || null,
         expected_price: parsed.data.expected_price ? Number(parsed.data.expected_price) : null,
         currency: "NGN",
+        product_link: parsed.data.product_link?.trim() || null,
         status: "new",
         created_at: serverTimestamp(),
       });
@@ -122,6 +157,22 @@ const SuggestProductForm = () => {
         </div>
 
         <div className="space-y-1">
+          <Label htmlFor="category" className="text-xs font-semibold uppercase tracking-wide">
+            Category <span className="text-destructive">*</span>
+          </Label>
+          <Select value={category} onValueChange={setCategory} disabled={submitting}>
+            <SelectTrigger id="category" className="rounded-sm h-10 text-sm">
+              <SelectValue placeholder="Select a category" />
+            </SelectTrigger>
+            <SelectContent>
+              {CATEGORIES.map((c) => (
+                <SelectItem key={c} value={c}>{c}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-1">
           <Label htmlFor="intended_use" className="text-xs font-semibold uppercase tracking-wide">
             Intended Use <span className="text-destructive">*</span>
           </Label>
@@ -168,6 +219,21 @@ const SuggestProductForm = () => {
           </div>
         </div>
 
+        <div className="space-y-1">
+          <Label htmlFor="product_link" className="text-xs font-semibold uppercase tracking-wide">
+            Product Link <span className="text-muted-foreground font-normal normal-case">(optional)</span>
+          </Label>
+          <Input
+            id="product_link"
+            name="product_link"
+            type="url"
+            inputMode="url"
+            placeholder="https://example.com/product"
+            maxLength={500}
+            disabled={submitting}
+            className="rounded-sm h-10 text-sm"
+          />
+        </div>
 
         <Button
           type="submit"
