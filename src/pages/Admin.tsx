@@ -60,7 +60,8 @@ const Admin = () => {
   const [search, setSearch] = useState("");
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
-
+  useEffect(() => {
+    let unsubSnap: (() => void) | undefined;
     const unsubAuth = onAuthStateChanged(auth, async (user) => {
       const ADMIN_UIDS = [
         "JiJIMXx4CEU2ddF8zku6iXQz0O22",
