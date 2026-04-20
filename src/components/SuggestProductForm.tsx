@@ -3,14 +3,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Upload, CheckCircle, Package, Loader2, X } from "lucide-react";
+import { CheckCircle, Package, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage, auth } from "@/lib/firebase";
-
-const MAX_FILE_BYTES = 10 * 1024 * 1024;
+import { db, auth } from "@/lib/firebase";
 
 const schema = z.object({
   product_name: z.string().trim().min(1, "Product name is required").max(200),
