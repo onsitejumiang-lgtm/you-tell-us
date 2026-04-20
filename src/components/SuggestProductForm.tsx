@@ -23,16 +23,12 @@ const schema = z.object({
 const SuggestProductForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [file, setFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   const resetAll = () => {
     setSubmitted(false);
-    setFile(null);
     setSubmitting(false);
     formRef.current?.reset();
-    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
