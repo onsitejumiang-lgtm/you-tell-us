@@ -37,10 +37,12 @@ type Status = "new" | "sourcing" | "sourced" | "rejected";
 type Suggestion = {
   id: string;
   product_name: string;
+  category: string | null;
   intended_use: string;
   preferred_brand: string | null;
   expected_price: number | null;
   currency: string;
+  product_link: string | null;
   media_url: string | null;
   media_type: string | null;
   status: Status;
