@@ -3,14 +3,38 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CheckCircle, Package, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { z } from "zod";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
 import { db, auth } from "@/lib/firebase";
 
+const CATEGORIES = [
+  "Phones & Tablets",
+  "Electronics",
+  "Computing",
+  "Home & Office",
+  "Appliances",
+  "Health & Beauty",
+  "Fashion",
+  "Supermarket",
+  "Baby Products",
+  "Gaming",
+  "Sporting Goods",
+  "Automobile",
+  "Other",
+] as const;
+
 const schema = z.object({
   product_name: z.string().trim().min(1, "Product name is required").max(200),
+  category: z.enum(CATEGORIES, { errorMap: () => ({ message: "Please pick a category" }) }),
   intended_use: z.string().trim().min(1, "Please tell us what you'll use it for").max(1000),
   preferred_brand: z.string().trim().max(100).optional().or(z.literal("")),
   expected_price: z
@@ -18,6 +42,11 @@ const schema = z.object({
     .trim()
     .optional()
     .refine((v) => !v || /^\d+(\.\d{1,2})?$/.test(v), "Enter a valid amount"),
+  product_link: z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || /^https?:\/\/.+/i.test(v), "Enter a valid URL (http/https)"),
 });
 
 const SuggestProductForm = () => {
