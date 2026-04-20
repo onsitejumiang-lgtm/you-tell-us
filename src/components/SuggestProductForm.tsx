@@ -168,45 +168,6 @@ const SuggestProductForm = () => {
           </div>
         </div>
 
-        <div className="space-y-1">
-          <Label className="text-xs font-semibold uppercase tracking-wide">
-            Image / Video <span className="text-muted-foreground font-normal normal-case">(optional, max 10 MB)</span>
-          </Label>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,video/*"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            disabled={submitting}
-            className="hidden"
-          />
-          {file ? (
-            <div className="w-full border border-border rounded-sm py-2 px-3 flex items-center justify-between text-sm">
-              <span className="truncate text-foreground">{file.name}</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setFile(null);
-                  if (fileInputRef.current) fileInputRef.current.value = "";
-                }}
-                className="text-muted-foreground hover:text-destructive ml-2"
-                aria-label="Remove file"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={submitting}
-              className="w-full border border-dashed border-border rounded-sm py-4 flex flex-col items-center gap-1 text-muted-foreground hover:border-primary hover:text-primary transition-colors cursor-pointer"
-            >
-              <Upload className="w-4 h-4" />
-              <span className="text-xs">Upload a reference image or video</span>
-            </button>
-          )}
-        </div>
 
         <Button
           type="submit"
